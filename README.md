@@ -87,7 +87,7 @@ Dự án được xây dựng bằng Python và WebSocket, cung cấp giải ph�
 <h3>Giao diện ứng dụng</h3>
 
 <p align="center">
-  <img src="https://github.com/YeNhi22/FT4012_ATBMMT/blob/main/secure-file-transfer-interface.png" alt="Giao diện gửi file bảo mật" width="600">
+  <img src="https://github.com/YeNhi22/SHA-256/blob/main/Screenshot%202025-06-10%20171342.png" alt="Giao diện đăng kí tài khoản" width="600">
 </p>
 
 <p align="center">
