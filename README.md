@@ -87,11 +87,11 @@ Dự án được xây dựng bằng Python và WebSocket, cung cấp giải ph�
 <h3>Giao diện ứng dụng</h3>
 
 <p align="center">
-  <img src="https://github.com/YeNhi22/SHA-256/blob/main/Screenshot%202025-06-10%20171342.png" alt="Giao diện đăng kí tài khoản" width="600">
+  <img src="https://github.com/YeNhi22/SHA-256/blob/main/Screenshot%202025-06-10%20171342.png" alt="Giao diện đăng kí tài khoản" width="400">
 </p>
 
 <p align="center">
-  <img src="https://github.com/YeNhi22/FT4012_ATBMMT/blob/main/file-hash-verification.png" alt="Xác minh mã băm file" width="600">
+  <img src="https://github.com/YeNhi22/SHA-256/blob/main/Screenshot%202025-06-10%20171403.png" alt="Giao diện đăng nhập tài khoản" width="350">
 </p>
 
 <p>Nguyễn Vũ Yến Nhi - Khoa Công nghệ thông tin, Đại học Đại Nam</p>
