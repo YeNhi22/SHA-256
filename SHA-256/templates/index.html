@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gửi File An Toàn</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            secondary: {
+              100: '#f0fdfa',
+              600: '#0d9488',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    .file-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+    .hash-display {
+      font-family: 'Courier New', monospace;
+      line-height: 1.6;
+      letter-spacing: 0.5px;
+    }
+    .hash-group:hover {
+      background-color: #f3f4f6;
+    }
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(-10px); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    .animate-fade-out {
+      animation: fadeOut 0.3s ease-in;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-secondary-100 min-h-screen font-sans flex items-center justify-center p-4">
+
+  <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg overflow-hidden">
+    <!-- Header -->
+    <div class="bg-primary-600 px-6 py-4 text-white">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-xl font-bold">Gửi File An Toàn</h1>
+          <p class="text-sm opacity-90">Xin chào, <span class="font-medium">{{ username }}</span></p>
+        </div>
+        <a href="/logout" class="text-sm hover:underline flex items-center gap-1">
+          <i class="fas fa-sign-out-alt"></i> Đăng xuất
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="p-6 space-y-6">
+      <!-- Send File Section -->
+      <section>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fas fa-paper-plane text-primary-600"></i> Gửi file mới
+        </h2>
+        
+        <form id="sendFileForm" class="space-y-4">
+          <div>
+            <label for="receiver" class="block text-sm font-medium text-gray-700 mb-1">Người nhận</label>
+            <div class="relative">
+              <select id="receiver" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-transparent transition">
+                <option value="" disabled selected>-- Chọn người nhận --</option>
+                {% for u in users %}
+                  {% if u != username %}
+                    <option value="{{ u }}">{{ u }}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <i class="fas fa-user text-gray-400"></i>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label for="fileInput" class="block text-sm font-medium text-gray-700 mb-1">Chọn file</label>
+            <div class="flex items-center justify-center w-full">
+              <label for="fileInput" class="flex flex-col items-center justify-center w-full border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
+                  <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                  <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Nhấn để chọn file</span> hoặc kéo thả vào đây</p>
+                  <p class="text-xs text-gray-500">Kích thước tối đa: 10MB</p>
+                </div>
+                <input id="fileInput" type="file" class="hidden" required />
+              </label>
+            </div>
+            <div id="fileNameDisplay" class="mt-2 text-sm text-gray-600 hidden">
+              <i class="fas fa-file-alt mr-1"></i> <span id="selectedFileName"></span>
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2.5 px-4 rounded-lg font-medium transition flex items-center justify-center gap-2">
+            <i class="fas fa-paper-plane"></i> Gửi File
+          </button>
+        </form>
+
+        <!-- Improved Hash Display -->
+        <div id="senderHash" class="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-primary-600 rounded-lg hidden">
+          <div class="flex items-start gap-3">
+            <div class="bg-primary-100 p-2 rounded-lg text-primary-600 flex-shrink-0">
+              <i class="fas fa-fingerprint text-lg"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between mb-2">
+                <p class="font-medium text-gray-800">Mã bảo mật file (SHA-256)</p>
+                <button id="copyHashBtn" class="text-primary-600 hover:text-primary-700 text-sm flex items-center gap-1 px-2 py-1 rounded hover:bg-primary-100 transition">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+              </div>
+              <div id="hashValue" class="hash-display bg-white p-3 rounded border text-sm"></div>
+              <p class="text-xs text-gray-500 mt-2">
+                <i class="fas fa-info-circle mr-1"></i>
+                Chia sẻ mã này với người nhận để xác minh tính toàn vẹn của file
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="border-t border-gray-200"></div>
+
+      <!-- Received Files Section -->
+      <section>
+        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fas fa-inbox text-primary-600"></i> File đã nhận
+        </h2>
+        
+        <div id="receivedFiles" class="space-y-3">
+          <div id="emptyState" class="text-center py-8 text-gray-500">
+            <i class="fas fa-inbox text-3xl mb-2 opacity-40"></i>
+            <p>Chưa có file nào được nhận</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Loading Modal -->
+  <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 max-w-sm w-full mx-4 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mx-auto mb-4"></div>
+      <h3 class="text-lg font-medium text-gray-900">Đang xử lý file</h3>
+      <p class="mt-2 text-sm text-gray-600">Vui lòng chờ trong giây lát...</p>
+      <p id="hashCalculating" class="mt-1 text-xs text-gray-500 hidden">
+        <i class="fas fa-cog animate-pulse mr-1"></i> Đang tính toán mã bảo mật...
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Font Awesome icons
+    const icons = {
+      file: {
+        pdf: 'fa-file-pdf',
+        word: 'fa-file-word',
+        excel: 'fa-file-excel',
+        image: 'fa-file-image',
+        audio: 'fa-file-audio',
+        video: 'fa-file-video',
+        archive: 'fa-file-archive',
+        code: 'fa-file-code',
+        text: 'fa-file-alt',
+        default: 'fa-file'
+      }
+    };
+
+    // Get file icon based on extension
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      if (ext === 'pdf') return icons.file.pdf;
+      if (['doc', 'docx'].includes(ext)) return icons.file.word;
+      if (['xls', 'xlsx', 'csv'].includes(ext)) return icons.file.excel;
+      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return icons.file.image;
+      if (['mp3', 'wav', 'ogg'].includes(ext)) return icons.file.audio;
+      if (['mp4', 'avi', 'mov', 'mkv'].includes(ext)) return icons.file.video;
+      if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return icons.file.archive;
+      if (['html', 'css', 'js', 'json', 'xml'].includes(ext)) return icons.file.code;
+      if (['txt', 'md'].includes(ext)) return icons.file.text;
+      return icons.file.default;
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Format hash for better readability
+    function formatHash(hash) {
+      // Split hash into groups of 8 characters
+      const groups = [];
+      for (let i = 0; i < hash.length; i += 8) {
+        groups.push(hash.substr(i, 8));
+      }
+      
+      // Create HTML with styled groups
+      return groups.map((group, index) => {
+        const bgColor = index % 2 === 0 ? 'bg-gray-50' : 'bg-blue-50';
+        return `<span class="hash-group px-2 py-1 rounded ${bgColor} transition-colors cursor-pointer" title="Nhóm ${index + 1}">${group}</span>`;
+      }).join(' ');
+    }
+
+    // Copy hash to clipboard
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        alertify.success('✅ Đã copy mã hash vào clipboard');
+        
+        // Visual feedback
+        const copyBtn = document.getElementById('copyHashBtn');
+        const originalHTML = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check text-green-600"></i> Copied!';
+        copyBtn.classList.add('text-green-600');
+        
+        setTimeout(() => {
+          copyBtn.innerHTML = originalHTML;
+          copyBtn.classList.remove('text-green-600');
+        }, 2000);
+      }).catch(() => {
+        alertify.error('❌ Không thể copy. Vui lòng copy thủ công.');
+      });
+    }
+
+    // Calculate SHA256 hash
+    async function calculateSHA256(file) {
+      document.getElementById('hashCalculating').classList.remove('hidden');
+      const arrayBuffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      document.getElementById('hashCalculating').classList.add('hidden');
+      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    // Initialize Socket.io
+    const socket = io();
+
+    // Socket events
+    socket.on("connect", () => console.log("✅ Kết nối thành công"));
+    socket.on("status", msg => console.log("📢", msg));
+    socket.on("error", msg => {
+      alertify.error("❌ " + msg);
+      document.getElementById('loadingModal').classList.add('hidden');
+    });
+
+    // Handle received files
+    socket.on("receive_file", data => {
+      const container = document.getElementById("receivedFiles");
+      const emptyState = document.getElementById("emptyState");
+      
+      if (emptyState) emptyState.remove();
+      
+      const url = `/download/${data.file_id}_${data.filename}`;
+      const fileIcon = getFileIcon(data.filename);
+      
+      const el = document.createElement("div");
+      el.className = "file-card p-4 bg-white border border-gray-200 rounded-lg transition hover:shadow-md";
+      el.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="bg-primary-100 p-2 rounded-lg text-primary-600">
+            <i class="fas ${fileIcon} text-lg"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <p class="text-sm text-gray-500 mb-1">Từ: <span class="font-medium">${data.sender}</span></p>
+                <a href="${url}" download class="block text-primary-600 hover:underline font-medium truncate">${data.filename}</a>
+              </div>
+              <a href="${url}" download class="text-primary-600 hover:text-primary-700 ml-2 flex-shrink-0">
+                <i class="fas fa-download"></i>
+              </a>
+            </div>
+            
+            <!-- Received file hash display -->
+            <div class="mt-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded">
+              <div class="flex items-start gap-2 mb-2">
+                <i class="fas fa-fingerprint text-green-600 mt-0.5"></i>
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-700">SHA-256:</p>
+                    <button onclick="copyToClipboard('${data.sha256}')" class="text-green-600 hover:text-green-700 text-xs flex items-center gap-1 px-2 py-1 rounded hover:bg-green-100 transition">
+                      <i class="fas fa-copy"></i> Copy
+                    </button>
+                  </div>
+                  <div class="hash-display text-xs mt-1">${formatHash(data.sha256)}</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+              <div class="flex items-center gap-1">
+                <i class="far fa-clock"></i>
+                <span>${new Date().toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      container.prepend(el);
+      
+      // Show notification
+      const notification = document.createElement("div");
+      notification.className = "fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 border-l-4 border-primary-600 flex items-start gap-3 max-w-xs animate-fade-in";
+      notification.innerHTML = `
+        <div class="bg-primary-100 p-2 rounded-full text-primary-600">
+          <i class="fas ${fileIcon}"></i>
+        </div>
+        <div>
+          <p class="font-medium text-gray-800">Nhận file mới</p>
+          <p class="text-sm text-gray-600">${data.filename}</p>
+          <p class="text-xs text-gray-500 mt-1">Từ: ${data.sender}</p>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      // Remove notification after 5 seconds
+      setTimeout(() => {
+        notification.classList.remove("animate-fade-in");
+        notification.classList.add("animate-fade-out");
+        setTimeout(() => notification.remove(), 300);
+      }, 5000);
+    });
+
+    // Update users list
+    socket.on("update_users", (users) => {
+      const select = document.getElementById("receiver");
+      const currentUser = "{{ username }}";
+      select.innerHTML = '<option value="" disabled selected>-- Chọn người nhận --</option>';
+
+      users.forEach((user) => {
+        if (user !== currentUser) {
+          const option = document.createElement("option");
+          option.value = user;
+          option.textContent = user;
+          select.appendChild(option);
+        }
+      });
+
+      if (select.options.length === 1) {
+        select.innerHTML = '<option value="" disabled selected>Không có người nhận nào</option>';
+      }
+    });
+
+    // Form submission
+    document.getElementById("sendFileForm").onsubmit = async (e) => {
+      e.preventDefault();
+      
+      const receiver = document.getElementById("receiver").value;
+      const fileInput = document.getElementById("fileInput");
+      const file = fileInput.files[0];
+      
+      if (!receiver || !file) {
+        alertify.error("⚠️ Vui lòng chọn người nhận và file.");
+        return;
+      }
+      
+      // Show loading modal
+      document.getElementById('loadingModal').classList.remove('hidden');
+      
+      try {
+        // Calculate hash
+        const sha256 = await calculateSHA256(file);
+        
+        // Show formatted hash to user
+        document.getElementById('senderHash').classList.remove('hidden');
+        document.getElementById('hashValue').innerHTML = formatHash(sha256);
+        
+        // Store raw hash for copying
+        window.currentHash = sha256;
+        
+        // Prepare file data
+        const arrayBuffer = await file.arrayBuffer();
+        const filedata = Array.from(new Uint8Array(arrayBuffer));
+        
+        // Send file via socket
+        socket.emit("send_file", {
+          receiver: receiver,
+          filename: file.name,
+          filedata: filedata,
+          sha256: sha256
+        });
+        
+        // Show success message
+        alertify.success(`✅ Đã gửi file "${file.name}" thành công`);
+        
+      } catch (error) {
+        console.error("Error:", error);
+        alertify.error("❌ Có lỗi xảy ra khi gửi file");
+      } finally {
+        // Hide loading modal
+        document.getElementById('loadingModal').classList.add('hidden');
+      }
+    };
+
+    // Copy hash button event
+    document.getElementById('copyHashBtn').addEventListener('click', () => {
+      if (window.currentHash) {
+        copyToClipboard(window.currentHash);
+      }
+    });
+
+    // Show selected file name
+    document.getElementById("fileInput").addEventListener("change", function() {
+      const fileNameDisplay = document.getElementById("fileNameDisplay");
+      const selectedFileName = document.getElementById("selectedFileName");
+      
+      if (this.files.length > 0) {
+        const file = this.files[0];
+        selectedFileName.textContent = `${file.name} (${formatFileSize(file.size)})`;
+        fileNameDisplay.classList.remove("hidden");
+      } else {
+        fileNameDisplay.classList.add("hidden");
+      }
+    });
+
+    // Simple notification system
+    const alertify = {
+      error: (msg) => {
+        const notification = document.createElement("div");
+        notification.className = "fixed bottom-4 right-4 bg-red-100 border-l-4 border-red-600 text-red-800 px-4 py-3 rounded shadow-lg flex items-start gap-3 max-w-xs animate-fade-in";
+        notification.innerHTML = `
+          <div class="pt-1">
+            <i class="fas fa-exclamation-circle text-red-600"></i>
+          </div>
+          <div>
+            <p class="font-medium">Lỗi</p>
+            <p class="text-sm">${msg}</p>
+          </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.remove("animate-fade-in");
+          notification.classList.add("animate-fade-out");
+          setTimeout(() => notification.remove(), 300);
+        }, 5000);
+      },
+      success: (msg) => {
+        const notification = document.createElement("div");
+        notification.className = "fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-600 text-green-800 px-4 py-3 rounded shadow-lg flex items-start gap-3 max-w-xs animate-fade-in";
+        notification.innerHTML = `
+          <div class="pt-1">
+            <i class="fas fa-check-circle text-green-600"></i>
+          </div>
+          <div>
+            <p class="font-medium">Thành công</p>
+            <p class="text-sm">${msg}</p>
+          </div>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.classList.remove("animate-fade-in");
+          notification.classList.add("animate-fade-out");
+          setTimeout(() => notification.remove(), 300);
+        }, 5000);
+      }
+    };
+  </script>
+</body>
+</html>
