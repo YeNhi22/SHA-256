@@ -9,7 +9,7 @@ Dự án được xây dựng bằng Python và WebSocket, cung cấp giải ph�
 <ul>
   <li><strong>Hệ thống chia sẻ file bảo mật:</strong>
     <ul>
-      <li>Đăng kí tài khoản</li>li>
+      <li>Đăng kí tài khoản</li>
       <li>Đăng nhập với tên người dùng để xác thực</li>
       <li>Gửi/nhận file theo thời gian thực qua WebSocket</li>
       <li>Tạo mã băm SHA-256 cho mỗi file được gửi</li>
